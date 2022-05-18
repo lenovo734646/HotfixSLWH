@@ -120,7 +120,7 @@ namespace Hotfix.SLWH
 				msg_set_bets_req msg = new msg_set_bets_req();
 				msg.pid_ = mainV_.betSelected;
 				msg.present_id_ = betID_;
-				AppController.ins.network.SendJson((short)GameMultiReqID.msg_set_bets_req, msg);
+				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, msg);
 				
 				if (lastBetTurn_ != mainV_.turn_)
 					mainV_.lastBets.Clear();
@@ -550,7 +550,7 @@ namespace Hotfix.SLWH
 			var clearBet = betSelectBtns.FindChildDeeply("Clear").GetComponent<Button>();
 			clearBet.onClick.AddListener(() => {
 				msg_clear_my_bets msg = new msg_clear_my_bets();
-				AppController.ins.network.SendJson((short)GameMultiReqID.msg_clear_my_bets, msg);
+				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_clear_my_bets, msg);
 				myTotalBet_ = 0;
 			});
 
@@ -563,7 +563,7 @@ namespace Hotfix.SLWH
 		IEnumerator ContinueBet()
 		{
 			for(int i = 0; i < lastBets.Count; i++) {
-				AppController.ins.network.SendJson((short)GameMultiReqID.msg_set_bets_req, lastBets[i]);
+				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, lastBets[i]);
 				yield return new WaitForSeconds(0.1f);
 			}
 		}
