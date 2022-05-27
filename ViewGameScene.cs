@@ -122,14 +122,14 @@ namespace Hotfix.SLWH
 				msg.present_id_ = betID_;
 				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, msg);
 				
-				if (lastBetTurn_ != mainV_.turn_)
+				if (mainV_.lastBetTurn_ != mainV_.turn_)
 					mainV_.lastBets.Clear();
 
 				mainV_.lastBets.Add(msg);
-				lastBetTurn_ = mainV_.turn_;
+				mainV_.lastBetTurn_ = mainV_.turn_;
 			});
 		}
-		int lastBetTurn_ = -1;
+
 		int betID_;
 		GameObject anmiObj_, objBtn_, txtObj_;
 		ViewGameScene mainV_;
@@ -309,7 +309,7 @@ namespace Hotfix.SLWH
 
 	public class ViewGameScene : ViewMultiplayerScene
 	{
-		public ViewGameScene()
+		public ViewGameScene(IShowDownloadProgress ip):base(ip)
 		{
 			var gm = (GameControllerMultiplayer)AppController.ins.currentApp.game;
 			gm.mainView = this;
@@ -520,16 +520,6 @@ namespace Hotfix.SLWH
 				betItems_.Add(i, bti);
 			}
 
-			//百人类游戏直接进游戏房间
-			var handle1 = AppController.ins.network.EnterGameRoom(1, 0);
-			yield return handle1;
-			if ((int)handle1.Current == 0) {
-				ViewToast.Create(LangNetWork.EnterRoomFailed);
-			}
-
-			AppController.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
-			OnMyDataChanged(null, null);
-
 			var tog_OpenBet = canvas.FindChildDeeply("tog_OpenBet").GetComponent<Toggle>();
 			tog_OpenBet.onValueChanged.AddListener(OnBetClick);
 
@@ -558,6 +548,17 @@ namespace Hotfix.SLWH
 			continueBet.onClick.AddListener(() => {
 				this.StartCor(ContinueBet(), true);
 			});
+
+
+			//百人类游戏直接进游戏房间
+			var handle1 = AppController.ins.network.EnterGameRoom(1, 0);
+			yield return handle1;
+			if ((int)handle1.Current == 0) {
+				ViewToast.Create(LangNetWork.EnterRoomFailed);
+			}
+
+			AppController.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
+			OnMyDataChanged(null, null);
 		}
 
 		IEnumerator ContinueBet()
@@ -736,7 +737,7 @@ namespace Hotfix.SLWH
 		{
 			var bi = betItems_[int.Parse(msg.present_id_)];
 			bi.SetMybet(long.Parse(msg.my_total_set_));
-
+			bi.SetTotalBet(long.Parse(msg.total_set_));
 			myTotalBet_ += long.Parse(msg.set_);
 		}
 
@@ -856,6 +857,11 @@ namespace Hotfix.SLWH
 			if(turn > lastTurn_) {
 				var rec = CreateGameRecordItem_(pidMain, pidSub, lstColors, lstAnimals);
 				recordViewport.AddChild(rec);
+				var app = (MyApp)AppController.ins.currentApp;
+				if (recordViewport.transform.childCount > app.conf.maxRecordCount) {
+					var t = recordViewport.transform.GetChild(0);
+					GameObject.Destroy(t.gameObject);
+				}
 			}
 			yield return new WaitForSeconds(1.0f * stateTimePercent);
 			huaBan.StartAnim("Close");
@@ -1221,7 +1227,7 @@ namespace Hotfix.SLWH
 
 		public AddressablesLoader.LoadTask<Material>  matRed, matGreen, matYellow;
 		public GameObject BetStageRoot, animalRot, arrowRot, jumpTarget, canvas, resultPanel, huaBan, bigSmallViewport, recordViewport;
-		public int betSelected = 1, turn_;
+		public int betSelected = 1, turn_, lastBetTurn_ = -1;
 		public List<msg_set_bets_req> lastBets = new List<msg_set_bets_req>();
 		List<Jewel> jewels_ = new List<Jewel>();
 		List<Animal> animals_ = new List<Animal>();

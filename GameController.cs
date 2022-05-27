@@ -23,7 +23,8 @@ namespace Hotfix.SLWH
 
 		IEnumerator ShowLoading_()
 		{
-			loading = OpenView<ViewLoading>();
+			loading = new ViewLoading();
+			OpenView(loading);
 			yield return 0;
 		}
 
@@ -37,17 +38,18 @@ namespace Hotfix.SLWH
 
 		IEnumerator DoLoadMainScene()
 		{
-			OpenView<ViewGameScene>();
+			ViewGameScene view = new ViewGameScene(loading.loading);
+			OpenView(view);
 			yield return 0;
 		}
 
 		public override IEnumerator OnGameLoginSucc()
 		{
-			if (!mainLoaded_) {
-				mainLoaded_ = true;
-				yield return base.OnGameLoginSucc();
-				yield return DoLoadMainScene();
+			if(mainView != null) {
+				mainView.Close();
 			}
+			yield return base.OnGameLoginSucc();
+			yield return DoLoadMainScene();
 		}
 
 		public override msg_random_result_base CreateRandomResult(string json)
@@ -59,8 +61,5 @@ namespace Hotfix.SLWH
 		{
 			return JsonMapper.ToObject<msg_last_random_slwh>(json);
 		}
-
-		bool mainLoaded_ = false;
-
 	}
 }

@@ -8,7 +8,8 @@ namespace Hotfix.SLWH
 {
 	public class ThisGameConfig
 	{
-		List<int> betSet = new List<int>();
+		public List<int> betSet = new List<int>();
+		public int maxRecordCount = 20;
 		public void Init()
 		{
 			betSet.Add(1000);

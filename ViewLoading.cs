@@ -15,18 +15,18 @@ namespace Hotfix.SLWH
 	public class AShower : IShowDownloadProgress
 	{
 		public ViewLoading vl_;
-		public void Progress(long downed, long totalLength)
+		public override void Progress(long downed, long totalLength)
 		{
 			if(vl_.slider != null) vl_.slider.maxValue = totalLength;
 			if (vl_.slider != null) vl_.slider.value = downed;
 		}
 
-		public void Desc(string desc)
+		public override void Desc(string desc)
 		{
 			if (vl_.txt != null) vl_.txt.text = desc;
 		}
 
-		public void SetState(DownloadState st)
+		public override void SetState(DownloadState st)
 		{
 
 		}
@@ -37,12 +37,11 @@ namespace Hotfix.SLWH
 	{
 		public Slider slider;
 		public Text txt;
-		AShower progress2_ = new AShower();
+		public AShower loading = new AShower();
 
-		public ViewLoading()
+		public ViewLoading():base(null)
 		{
-			progress2_.vl_ = this;
-			progress = progress2_;
+			loading.vl_ = this;
 		}
 
 		protected override void SetLoader()
