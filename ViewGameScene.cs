@@ -319,11 +319,6 @@ namespace Hotfix.SLWH
 		{
 			var ctrl = (GameController)AppController.ins.currentApp.game;
 			LoadScene("Assets/Res/Games/SLWH/Scenes/MainScene.unity", null);
-		}
-
-		protected override IEnumerator OnResourceReady()
-		{
-			yield return base.OnResourceReady();
 
 			LoadAssets<Material>("Assets/Res/Games/SLWH/Dance/Secne_Model/ColorLight/light_Red.mat",
 				(t) => {
@@ -381,8 +376,8 @@ namespace Hotfix.SLWH
 
 			LoadAssets<GameObject>("Assets/Res/Games/SLWH/Dance/UI/Main/BigSmallItem.prefab",
 				(t) => {
-				cacheBigSmallItem_ = t;
-			});
+					cacheBigSmallItem_ = t;
+				});
 
 			LoadAssets<Texture2D>("Assets/Res/Games/SLWH/Dance/UI/Result/color_1.png",
 				(t) => {
@@ -470,7 +465,12 @@ namespace Hotfix.SLWH
 					cachedItemRecord_ = t;
 				});
 
-			yield return Globals.resLoader.WaitingForReady(10.0f);
+		}
+
+		protected override IEnumerator OnResourceReady()
+		{
+			yield return base.OnResourceReady();
+
 			canvas = GameObject.Find("Canvas");
 
 			resultPanel = canvas.FindChildDeeply("ResultPanel");
@@ -574,8 +574,8 @@ namespace Hotfix.SLWH
 			var btn_set = Toggle_Menu.gameObject.FindChildDeeply("btn_Set");
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
-				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave,(int) ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					this.StartCor(AppController.ins.CheckUpdateAndRun(AppController.ins.conf.defaultGame, null, false), false);
+				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
+					AppController.ins.StartCor(AppController.ins.CheckUpdateAndRun(AppController.ins.conf.defaultGame, null, false), false);
 				});
 			});
 
