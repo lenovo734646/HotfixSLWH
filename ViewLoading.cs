@@ -15,22 +15,24 @@ namespace Hotfix.SLWH
 	public class AShower : IShowDownloadProgress
 	{
 		public ViewLoading vl_;
-		public override void Progress(long downed, long totalLength)
+		public override void OnProgress(long downed, long totalLength)
 		{
-			if(vl_.slider != null) vl_.slider.maxValue = totalLength;
+			if (totalLength == 0) return;
+			per_ = downed / totalLength;
+			if (vl_.slider != null) vl_.slider.maxValue = totalLength;
 			if (vl_.slider != null) vl_.slider.value = downed;
 		}
 
-		public override void Desc(string desc)
+		public override void OnDesc(string desc)
 		{
 			if (vl_.txt != null) vl_.txt.text = desc;
 		}
 
-		public override void SetState(DownloadState st)
+		public override void OnSetState(DownloadState st)
 		{
 
 		}
-
+		float per_ = 0.0f;
 	}
 
 	public class ViewLoading : ViewBase

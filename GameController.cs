@@ -38,8 +38,11 @@ namespace Hotfix.SLWH
 
 		IEnumerator DoLoadMainScene()
 		{
+			yield return loading.WaitingForReady();
+			//需要等待loding scene完成,不能同时load2个scene,必须等一个完成
 			ViewGameScene view = new ViewGameScene(loading.loading);
 			OpenView(view);
+			yield return view.WaitingForReady();
 			yield return 0;
 		}
 

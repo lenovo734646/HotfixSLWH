@@ -214,13 +214,13 @@ namespace Hotfix.SLWH
 			//跳上舞台
 			PlayJump();
 			var jump = obj_.transform.DOJump(jumpTar_.transform.position, 2, 1, 1.0f);
-			yield return jump.WaitForCompletion();
+			yield return new WaitForSeconds(1.0f);
 
 			yield return new WaitForSeconds(0.5f);
 			//转身
 			RoundBody();
 			var rot = obj_.transform.DOLocalRotate(new Vector3(0, 180, 0), 0.5f);
-			yield return rot.WaitForCompletion();
+			yield return new WaitForSeconds(0.5f);
 			yield return new WaitForSeconds(0.5f);
 			//跳舞
 			PlayDance();
@@ -234,19 +234,19 @@ namespace Hotfix.SLWH
 			var tPos = positionOld_;
 			tPos.y = obj_.transform.position.y;
 			var lookAt = obj_.transform.DOLookAt(tPos, 0.5f);
-			yield return lookAt.WaitForCompletion();
+			yield return new WaitForSeconds(0.5f);
 
 			//跳回
 			PlayJump();
 			var jump = obj_.transform.DOJump(positionOld_, 2, 1, 1.0f);
-			yield return jump.WaitForCompletion();
+			yield return new WaitForSeconds(1.0f);
 			yield return new WaitForSeconds(0.5f);
 			//转回原始朝向
 			RoundBody();
 			var tPos2 = jumpTar_.transform.position;
 			tPos2.y = obj_.transform.position.y;
 			var lookAt2 = obj_.transform.DOLookAt(tPos2, 0.5f);
-			yield return lookAt2.WaitForCompletion();
+			yield return new WaitForSeconds(0.5f);
 
 			PlayIdle();
 		}
@@ -469,8 +469,8 @@ namespace Hotfix.SLWH
 				(t) => {
 					cachedItemRecord_ = t;
 				});
-			
-			yield return Globals.resLoader.WaitForAllTaskCompletion();
+
+			yield return Globals.resLoader.WaitingForReady(10.0f);
 			canvas = GameObject.Find("Canvas");
 
 			resultPanel = canvas.FindChildDeeply("ResultPanel");
@@ -547,6 +547,36 @@ namespace Hotfix.SLWH
 			var continueBet = betSelectBtns.FindChildDeeply("Continue").GetComponent<Button>();
 			continueBet.onClick.AddListener(() => {
 				this.StartCor(ContinueBet(), true);
+			});
+
+			var Toggle_Menu = canvas.FindChildDeeply("Toggle_Menu").GetComponent<Toggle>();
+			Toggle_Menu.onValueChanged.AddListener((seleced) => {
+				if (seleced)
+					Toggle_Menu.gameObject.FindChildDeeply("Option").StartDoTweenAnim(false);
+				else
+					Toggle_Menu.gameObject.FindChildDeeply("Option").StartDoTweenAnim(true);
+			});
+
+			var btn_bank = Toggle_Menu.gameObject.FindChildDeeply("btn_Bank");
+			btn_bank.OnClick(() => {
+				ViewBankLogin bank = new ViewBankLogin(null);
+				AppController.ins.currentApp.game.OpenView(bank);
+			});
+
+			var btn_rule = Toggle_Menu.gameObject.FindChildDeeply("btn_Rule");
+			var RulePanel = canvas.FindChildDeeply("RulePanel");
+			btn_rule.OnClick(() => {
+				RulePanel.SetActive(true);
+				RulePanel.StartDoTweenAnim();
+			});
+
+
+			var btn_set = Toggle_Menu.gameObject.FindChildDeeply("btn_Set");
+			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
+			btn_exit.OnClick(() => {
+				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave,(int) ViewPopup.Flag.BTN_OK_CANCEL, () => {
+					this.StartCor(AppController.ins.CheckUpdateAndRun(AppController.ins.conf.defaultGame, null, false), false);
+				});
 			});
 
 
@@ -741,9 +771,9 @@ namespace Hotfix.SLWH
 			myTotalBet_ += long.Parse(msg.set_);
 		}
 
-		public override void OnPlayerEnter(msg_player_seat msg)
+		public override GamePlayer OnPlayerEnter(msg_player_seat msg)
 		{
-			base.OnPlayerEnter(msg);
+			return base.OnPlayerEnter(msg);
 		}
 
 		public override void OnPlayerLeave(msg_player_leave msg)
@@ -787,9 +817,9 @@ namespace Hotfix.SLWH
 			var recTrans = bigSmallViewport.GetComponent<RectTransform>();
 			var doMove = recTrans.DOLocalMoveY(count * 120, 9.0f * stateTimePercent);
 			doMove.SetEase(Ease.InOutQuint);
-			yield return doMove.WaitForCompletion();
+			yield return new WaitForSeconds(9.0f * stateTimePercent);
 			recTrans.DOLocalMoveY(0, 0);
-			yield return doMove.WaitForCompletion();
+			yield return new WaitForSeconds(0.0f);
 
 			bigSmallViewport.RemoveAllChildren();
 			bigSmallViewport.AddChild(CreateBigSmallItem(lastBigSmall));
@@ -833,7 +863,8 @@ namespace Hotfix.SLWH
 				rotTime *= stateTimePercent;
 				var tween = arrowRot.transform.DOLocalRotate(new Vector3(0, rotUnit, 0), rotTime, RotateMode.LocalAxisAdd);
 				tween.SetEase(Ease.InOutQuint);
-				yield return tween.WaitForCompletion();
+
+				yield return new WaitForSeconds(rotTime);
 
 				lastPointerPos = animal;
 
@@ -1213,6 +1244,22 @@ namespace Hotfix.SLWH
 			}
 
 		}
+
+		public override void OnCommonReply(msg_common_reply msg)
+		{
+			
+		}
+
+		public override void OnApplyBanker(msg_new_banker_applyed msg)
+		{
+			
+		}
+
+		public override void OnCancelBanker(msg_apply_banker_canceled msg)
+		{
+			
+		}
+
 		long myTotalBet_
 		{
 			get {
