@@ -3,6 +3,7 @@ using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
 using Hotfix.Common;
+using Hotfix.Common.MultiPlayer;
 using Hotfix.Model;
 using LitJson;
 using Spine.Unity;
@@ -120,7 +121,7 @@ namespace Hotfix.SLWH
 				msg_set_bets_req msg = new msg_set_bets_req();
 				msg.pid_ = mainV_.betSelected;
 				msg.present_id_ = betID_;
-				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, msg);
+				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_set_bets_req, msg);
 				
 				if (mainV_.lastBetTurn_ != mainV_.turn_)
 					mainV_.lastBets.Clear();
@@ -311,13 +312,13 @@ namespace Hotfix.SLWH
 	{
 		public ViewGameScene(IShowDownloadProgress ip):base(ip)
 		{
-			var gm = (GameControllerMultiplayer)AppController.ins.currentApp.game;
+			var gm = (GameControllerMultiplayer)App.ins.currentApp.game;
 			gm.mainView = this;
 		}
 
 		protected override void SetLoader()
 		{
-			var ctrl = (GameController)AppController.ins.currentApp.game;
+			var ctrl = (GameController)App.ins.currentApp.game;
 			LoadScene("Assets/Res/Games/SLWH/Scenes/MainScene.unity", null);
 
 			LoadAssets<Material>("Assets/Res/Games/SLWH/Dance/Secne_Model/ColorLight/light_Red.mat",
@@ -469,8 +470,6 @@ namespace Hotfix.SLWH
 
 		protected override IEnumerator OnResourceReady()
 		{
-			yield return base.OnResourceReady();
-
 			canvas = GameObject.Find("Canvas");
 
 			resultPanel = canvas.FindChildDeeply("ResultPanel");
@@ -540,7 +539,7 @@ namespace Hotfix.SLWH
 			var clearBet = betSelectBtns.FindChildDeeply("Clear").GetComponent<Button>();
 			clearBet.onClick.AddListener(() => {
 				msg_clear_my_bets msg = new msg_clear_my_bets();
-				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_clear_my_bets, msg);
+				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_clear_my_bets, msg);
 				myTotalBet_ = 0;
 			});
 
@@ -560,7 +559,7 @@ namespace Hotfix.SLWH
 			var btn_bank = Toggle_Menu.gameObject.FindChildDeeply("btn_Bank");
 			btn_bank.OnClick(() => {
 				ViewBankLogin bank = new ViewBankLogin(null);
-				AppController.ins.currentApp.game.OpenView(bank);
+				App.ins.currentApp.game.OpenView(bank);
 			});
 
 			var btn_rule = Toggle_Menu.gameObject.FindChildDeeply("btn_Rule");
@@ -575,26 +574,30 @@ namespace Hotfix.SLWH
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
 				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					AppController.ins.StartCor(AppController.ins.CheckUpdateAndRun(AppController.ins.conf.defaultGame, null, false), false);
+					App.ins.StartCor(App.ins.CheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
 				});
 			});
 
+			App.ins.network.RegisterMsgHandler((int)GameMultiRspID.msg_send_color, (cmd, json) => {
+				var msg = JsonMapper.ToObject<msg_send_color>(json);
+				OnSendColor(msg);
+			}, this);
 
 			//百人类游戏直接进游戏房间
-			var handle1 = AppController.ins.network.EnterGameRoom(1, 0);
+			var handle1 = App.ins.network.EnterGameRoom(1, 0);
 			yield return handle1;
 			if ((int)handle1.Current == 0) {
 				ViewToast.Create(LangNetWork.EnterRoomFailed);
 			}
 
-			AppController.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
+			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
 		}
 
 		IEnumerator ContinueBet()
 		{
 			for(int i = 0; i < lastBets.Count; i++) {
-				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, lastBets[i]);
+				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_set_bets_req, lastBets[i]);
 				yield return new WaitForSeconds(0.1f);
 			}
 		}
@@ -615,20 +618,20 @@ namespace Hotfix.SLWH
 		void OnMyDataChanged(object sender, EventArgs evt)
 		{
 			var head = canvas.FindChildDeeply("HeadRoot").FindChildDeeply("head").GetComponent<Image>();
-			AppController.ins.self.gamePlayer.SetHeadPic(head);
+			App.ins.self.gamePlayer.SetHeadPic(head);
 
 			var frame = canvas.FindChildDeeply("HeadRoot").FindChildDeeply("frame").GetComponent<Image>();
-			AppController.ins.self.gamePlayer.SetHeadFrame(frame);
+			App.ins.self.gamePlayer.SetHeadFrame(frame);
 
 			var nickName = canvas.FindChildDeeply("HeadRoot").FindChildDeeply("nickName").GetComponent<TextMeshProUGUI>();
-			nickName.text = AppController.ins.self.gamePlayer.nickName;
+			nickName.text = App.ins.self.gamePlayer.nickName;
 
 			var goldText = canvas.FindChildDeeply("BottomBG").FindChildDeeply("goldText").GetComponent<TextMeshProUGUI>();
-			goldText.text = Utils.FormatGoldShow(AppController.ins.self.gamePlayer.items[(int)ITEMID.GOLD]);
+			goldText.text = App.ins.self.gamePlayer.items[(int)ITEMID.GOLD].ShowAsGold();
 		}
 
 
-		public override void Close()
+		protected override void OnClose()
 		{
 			foreach (var it in animals_) {
 				it.Stop();
@@ -642,24 +645,14 @@ namespace Hotfix.SLWH
 			jewels_.Clear();
 			betItems_.Clear();
 			animals_.Clear();
-			AppController.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
+			App.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
 			base.Close();
 		}
 
-		public override void OnNetMsg(int cmd, string json)
-		{
-			switch (cmd) {
-				case (int)GameMultiRspID.msg_send_color: {
-					var msg = JsonMapper.ToObject<msg_send_color>(json);
-					OnSendColor(msg);
-				}
-				break;
-			}
-		}
 
 		IEnumerator DoSetColor(List<int> lst)
 		{
-			if (!AppController.ins.currentApp.game.isEntering) {
+			if (!App.ins.currentApp.game.isEntering) {
 				foreach (var jew in jewels_) {
 					jew.SetColor((int)eAniColor.Gray);
 					yield return new WaitForSeconds(0.03f);
@@ -888,7 +881,7 @@ namespace Hotfix.SLWH
 			if(turn > lastTurn_) {
 				var rec = CreateGameRecordItem_(pidMain, pidSub, lstColors, lstAnimals);
 				recordViewport.AddChild(rec);
-				var app = (MyApp)AppController.ins.currentApp;
+				var app = (MyApp)App.ins.currentApp;
 				if (recordViewport.transform.childCount > app.conf.maxRecordCount) {
 					var t = recordViewport.transform.GetChild(0);
 					GameObject.Destroy(t.gameObject);
@@ -1227,11 +1220,11 @@ namespace Hotfix.SLWH
 
 		public override void OnGoldChange(msg_deposit_change2 msg)
 		{
-			int pos = AppController.ins.self.gamePlayer.serverPos;
+			int pos = App.ins.self.gamePlayer.serverPos;
 			if (int.Parse(msg.pos_) == pos) {
 				if(int.Parse(msg.display_type_) == (int)msg_deposit_change2.dp.display_type_sync_gold) {
-					AppController.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-					AppController.ins.self.gamePlayer.DispatchDataChanged();
+					App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
+					App.ins.self.gamePlayer.DispatchDataChanged();
 				}
 			}
 		}
@@ -1239,8 +1232,8 @@ namespace Hotfix.SLWH
 		public override void OnGoldChange(msg_currency_change msg)
 		{
 			if(msg.why_ == "0") {
-				AppController.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-				AppController.ins.self.gamePlayer.DispatchDataChanged();
+				App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
+				App.ins.self.gamePlayer.DispatchDataChanged();
 			}
 
 		}
@@ -1260,6 +1253,11 @@ namespace Hotfix.SLWH
 			
 		}
 
+		public override void OnJackpotNumber(msg_get_public_data_ret msg)
+		{
+			throw new NotImplementedException();
+		}
+
 		long myTotalBet_
 		{
 			get {
@@ -1268,7 +1266,7 @@ namespace Hotfix.SLWH
 			set {
 				myTotalBet__ = value;
 				var betText = canvas.FindChildDeeply("BottomBG").FindChildDeeply("betText").GetComponent<TextMeshProUGUI>();
-				betText.text = Utils.FormatGoldShow(myTotalBet__);
+				betText.text = myTotalBet__.ShowAsGold();
 			}
 		}
 
