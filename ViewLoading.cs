@@ -50,13 +50,13 @@ namespace Hotfix.SLWH
 		{
 			LoadScene("Assets/Res/Games/SLWH/Scenes/LoadingScene.unity", null);
 		}
-
+		 
 		protected override IEnumerator OnResourceReady()
 		{
-			yield return base.OnResourceReady();
 			var canvas = GameObject.Find("Canvas");
 			slider = canvas.FindChildDeeply("Slider").GetComponent<Slider>();
 			txt = canvas.FindChildDeeply("Text").GetComponent<Text>();
+			yield return 0;
 		}
 
 	}
