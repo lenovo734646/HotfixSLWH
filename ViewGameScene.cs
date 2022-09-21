@@ -621,13 +621,7 @@ namespace Hotfix.SLWH
 
 			App.ins.network.LogMsg((int)GameMultiRspID.msg_random_result_slwh);
 			App.ins.network.LogMsg((int)GameMultiRspID.msg_send_color);
-
-			//百人类游戏直接进游戏房间
-			var handle1 = App.ins.network.EnterGameRoom(1, 0);
-			yield return handle1;
-			if ((int)handle1.Current == 0) {
-				ViewToast.Create(LangNetWork.EnterRoomFailed);
-			}
+			yield return 0;
 		}
 
 		IEnumerator ContinueBet()
