@@ -51,7 +51,7 @@ namespace Hotfix.SLWH
 		protected override IEnumerator OnGameLoginSucc()
 		{
 			//百人类游戏直接进游戏房间
-			var handle1 = App.ins.network.EnterGameRoom(1, 0);
+			var handle1 = App.ins.network.CoEnterGameRoom(1, 0);
 			yield return handle1;
 			if ((int)handle1.Current == 0) {
 				ViewToast.Create(LangNetWork.EnterRoomFailed);

@@ -183,7 +183,7 @@ namespace Hotfix.SLWH
 		eAniColor color_;
 	}
 
-	public class Animal
+	public class Animal : ControllerDefault
 	{
 		enum State
 		{
@@ -308,11 +308,6 @@ namespace Hotfix.SLWH
 			else if (animal == eAnimal.Monkey) {
 				obj_.StartAnim("Walk_Monkey");
 			}
-		}
-
-		public void Stop()
-		{
-			this.StopCor(-1);
 		}
 
 		GameObject obj_;
@@ -607,11 +602,11 @@ namespace Hotfix.SLWH
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
 				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					App.ins.StartCor(App.ins.CheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
+					App.ins.StartCor(App.ins.CoCheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
 				});
 			});
 
-			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
+			App.ins.self.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
 
 			App.ins.network.RegisterMsgHandler((int)GameMultiRspID.msg_send_color, (cmd, json) => {
@@ -619,8 +614,6 @@ namespace Hotfix.SLWH
 				OnSendColor(msg);
 			}, this);
 
-			App.ins.network.LogMsg((int)GameMultiRspID.msg_random_result_slwh);
-			App.ins.network.LogMsg((int)GameMultiRspID.msg_send_color);
 			yield return 0;
 		}
 
@@ -648,20 +641,20 @@ namespace Hotfix.SLWH
 		void OnMyDataChanged(object sender, EventArgs evt)
 		{
 			var head = canvas.FindChildDeeply("HeadRoot").FindChildDeeply("head").GetComponent<Image>();
-			App.ins.self.gamePlayer.SetHeadPic(head);
+			App.ins.self.SetHeadPic(head);
 
 			var frame = canvas.FindChildDeeply("HeadRoot").FindChildDeeply("frame").GetComponent<Image>();
-			App.ins.self.gamePlayer.SetHeadFrame(frame);
+			App.ins.self.SetHeadFrame(frame);
 
 			var nickName = canvas.FindChildDeeply("HeadRoot").FindChildDeeply("nickName").GetComponent<TextMeshProUGUI>();
-			nickName.text = App.ins.self.gamePlayer.nickName;
+			nickName.text = App.ins.self.nickName;
 
 			var goldText = canvas.FindChildDeeply("BottomBG").FindChildDeeply("goldText").GetComponent<TextMeshProUGUI>();
-			goldText.text = App.ins.self.gamePlayer.items[(int)ITEMID.GOLD].ShowAsGold();
+			goldText.text = App.ins.self.items[(int)ITEMID.GOLD].ShowAsGold();
 		}
 
 
-		protected override void OnClose()
+		protected override void OnStop()
 		{
 			foreach (var it in animals_) {
 				it.Stop();
@@ -675,7 +668,7 @@ namespace Hotfix.SLWH
 			jewels_.Clear();
 			betItems_.Clear();
 			animals_.Clear();
-			App.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
+			App.ins.self.onDataChanged -= OnMyDataChanged;
 			base.Close();
 		}
 
@@ -1321,26 +1314,6 @@ namespace Hotfix.SLWH
 				var ratio3 = winAnimal.FindChildDeeply("ratioText").GetComponent<TextMeshProUGUI>();
 				ratio3.text = "X" + ratio;
 			}
-		}
-
-		public override void OnGoldChange(msg_deposit_change2 msg)
-		{
-			int pos = App.ins.self.gamePlayer.serverPos;
-			if (int.Parse(msg.pos_) == pos) {
-				if(int.Parse(msg.display_type_) == (int)msg_deposit_change2.dp.display_type_sync_gold) {
-					App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-					App.ins.self.gamePlayer.DispatchDataChanged();
-				}
-			}
-		}
-
-		public override void OnGoldChange(msg_currency_change msg)
-		{
-			if(msg.why_ == "0") {
-				App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-				App.ins.self.gamePlayer.DispatchDataChanged();
-			}
-
 		}
 
 		public override void OnCommonReply(msg_common_reply msg)
