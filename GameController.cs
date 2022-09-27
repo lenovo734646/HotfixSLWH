@@ -43,15 +43,23 @@ namespace Hotfix.SLWH
 			//需要等待loding scene完成,不能同时load2个scene,必须等一个完成
 			ViewGameScene view = new ViewGameScene(loading.loading);
 			OpenView(view);
+			mainView = view;
 			yield return view.WaitingForReady();
 			yield return 0;
 		}
 
 		protected override IEnumerator OnGameLoginSucc()
 		{
-			if(mainView != null) {
-				mainView.Close();
+			//百人类游戏直接进游戏房间
+			var handle1 = App.ins.network.EnterGameRoom(1, 0);
+			yield return handle1;
+			if ((int)handle1.Current == 0) {
+				ViewToast.Create(LangNetWork.EnterRoomFailed);
 			}
+		}
+
+		protected override IEnumerator OnPrepareGameRoom()
+		{
 			yield return DoLoadMainScene();
 		}
 

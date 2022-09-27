@@ -50,7 +50,7 @@ namespace Hotfix.SLWH
 		{
 			LoadScene("Assets/Res/Games/SLWH/Scenes/LoadingScene.unity", null);
 		}
-
+		 
 		protected override IEnumerator OnResourceReady()
 		{
 			var canvas = GameObject.Find("Canvas");

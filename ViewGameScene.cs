@@ -59,7 +59,7 @@ namespace Hotfix.SLWH
 		DaSiXiYellow,
 		DaSiXiGreen,
 
-		Lightingx2 = 301,
+		Lightingx2 = 300,
 		Lightingx3,
 
 		SongDeng = 400,
@@ -79,22 +79,20 @@ namespace Hotfix.SLWH
 			Init_();
 		}
 
+
 		public void SetMybet(long bet)
 		{
-			var txt = txtObj_.FindChildDeeply("selfScore").GetComponent<TextMeshProUGUI>();
-			txt.text = bet.ToString();
+			selfScore_.text = bet.ToString();
 		}
 
 		public void SetTotalBet(long bet)
 		{
-			var txt = txtObj_.FindChildDeeply("totalScore").GetComponent<TextMeshProUGUI>();
-			txt.text = bet.ToString();
+			totalSore_.text = bet.ToString();
 		}
 
 		public void SetFactor(long bet)
 		{
-			var txt = txtObj_.FindChildDeeply("ratioText").GetComponent<TextMeshProUGUI>();
-			txt.text = bet.ToString();
+			ratioText_.text = bet.ToString();
 		}
 
 		void Init_()
@@ -129,10 +127,15 @@ namespace Hotfix.SLWH
 				mainV_.lastBets.Add(msg);
 				mainV_.lastBetTurn_ = mainV_.turn_;
 			});
+
+			selfScore_ = txtObj_.FindChildDeeply("selfScore").GetComponent<TextMeshProUGUI>();
+			totalSore_ = txtObj_.FindChildDeeply("totalScore").GetComponent<TextMeshProUGUI>();
+			ratioText_ = txtObj_.FindChildDeeply("ratioText").GetComponent<TextMeshProUGUI>();
 		}
 
 		int betID_;
 		GameObject anmiObj_, objBtn_, txtObj_;
+		TextMeshProUGUI selfScore_, totalSore_, ratioText_;
 		ViewGameScene mainV_;
 	}
 
@@ -192,16 +195,14 @@ namespace Hotfix.SLWH
 
 		}
 
-		public Animal(GameObject obj, int index, GameObject jumpTarget)
+		public Animal(GameObject obj, int index)
 		{
 			obj_ = obj;
-			jumpTar_ = jumpTarget;
 			positionOld_ = obj_.transform.position;
 			idles.Add("Idel"); idles.Add("Idel1");
 			animal = (eAnimal)(index % 4);
-			animal = (eAnimal)(index % 4);
-			animal = (eAnimal)(index % 4);
 		}
+
 		public Animal(GameObject obj, eAnimal ani)
 		{
 			obj_ = obj;
@@ -210,11 +211,25 @@ namespace Hotfix.SLWH
 			animal = ani;
 		}
 
-		public IEnumerator JumpToStage()
+		public IEnumerator JumpToStage(Vector3 target)
 		{
+			Dictionary<eAnimal, string> des1 = new Dictionary<eAnimal, string>();
+			des1.Add(eAnimal.Panda, "panda");
+			des1.Add(eAnimal.Rabbit, "rabbit");
+			des1.Add(eAnimal.Loin, "lion");
+			des1.Add(eAnimal.Monkey, "monkey");
+
+			Dictionary<eAniColor, string> des2 = new Dictionary<eAniColor, string>();
+			des2.Add(eAniColor.Red, "red");
+			des2.Add(eAniColor.Green, "green");
+			des2.Add(eAniColor.Yellow, "yellow");
+
+			string fmt = string.Format("Assets/Res/Games/SLWH/Dance/Sound/CN/{0}_{1}.wav", des2[color], des1[animal]);
+			App.ins.audio.PlayEffOneShot(fmt);
+
 			//跳上舞台
 			PlayJump();
-			var jump = obj_.transform.DOJump(jumpTar_.transform.position, 2, 1, 1.0f);
+			var jump = obj_.transform.DOJump(target, 2, 1, 1.0f);
 			yield return new WaitForSeconds(1.0f);
 
 			yield return new WaitForSeconds(0.5f);
@@ -223,12 +238,11 @@ namespace Hotfix.SLWH
 			var rot = obj_.transform.DOLocalRotate(new Vector3(0, 180, 0), 0.5f);
 			yield return new WaitForSeconds(0.5f);
 			yield return new WaitForSeconds(0.5f);
-			//跳舞
-			PlayDance();
 
+			PlayIdle();
 		}
 
-		public IEnumerator JumpBack()
+		public IEnumerator JumpBack(Vector3 target)
 		{
 			//转身准备跳回原来位置
 			RoundBody();
@@ -244,7 +258,7 @@ namespace Hotfix.SLWH
 			yield return new WaitForSeconds(0.5f);
 			//转回原始朝向
 			RoundBody();
-			var tPos2 = jumpTar_.transform.position;
+			var tPos2 = target;
 			tPos2.y = obj_.transform.position.y;
 			var lookAt2 = obj_.transform.DOLookAt(tPos2, 0.5f);
 			yield return new WaitForSeconds(0.5f);
@@ -301,11 +315,12 @@ namespace Hotfix.SLWH
 			this.StopCor(-1);
 		}
 
-		GameObject obj_, jumpTar_;
+		GameObject obj_;
 		Vector3 positionOld_;
 		List<string> idles = new List<string>();
 		int idleRotID_ = -1;
 		public eAnimal animal;
+		public eAniColor color;
 	}
 
 	public class ViewGameScene : ViewMultiplayerScene
@@ -468,6 +483,17 @@ namespace Hotfix.SLWH
 
 		}
 
+		TimeCounter tcSyncJackpot_ = new TimeCounter("");
+		public override void LazyUpdate()
+		{
+			if (tcSyncJackpot_.Elapse() > 2) {
+				tcSyncJackpot_.Restart();
+				msg_get_public_data msg = new msg_get_public_data();
+				msg.data_ = "cashpool4";
+				App.ins.network.SendMessage((int)GameReqID.msg_get_public_data, msg);
+			}
+		}
+
 		protected override IEnumerator OnResourceReady()
 		{
 			canvas = GameObject.Find("Canvas");
@@ -476,10 +502,17 @@ namespace Hotfix.SLWH
 			BetStageRoot = GameObject.Find("BetStageRoot");
 			animalRot = GameObject.Find("Animal_Rotate_Root");
 			arrowRot = GameObject.Find("Arrow_Rotate_Root");
-			jumpTarget = animalRot.FindChildDeeply("JumpTarget");
 			huaBan = GameObject.Find("HuaBan");
+			jumpTarget = GameObject.Find("JumpTarget");
+			centerStage = GameObject.Find("Center/dizuo");
+
+			for(int i = 1; i <= 5; i++) {
+				stagePos_.Add(GameObject.Find($"animal/{i}"));
+			}
+
 			bigSmallViewport = canvas.FindChildDeeply("EnjoyGameScrollView").FindChildDeeply("Viewport");
 			recordViewport = canvas.FindChildDeeply("RoadBG").FindChildDeeply("Content");
+
 			var animalIndexs = animalRot.FindChildDeeply("animalIndexs");
 
 			var ColorLightRoot = GameObject.Find("ColorLightRoot");
@@ -509,7 +542,7 @@ namespace Hotfix.SLWH
 				lookTo.y = obj.transform.position.y;
 				obj.transform.LookAt(lookTo);
 
-				var animal = new Animal(obj, i - 1, jumpTarget);
+				var animal = new Animal(obj, i - 1);
 				animals_.Add(animal);
 				animal.PlayIdle();
 			}
@@ -578,20 +611,17 @@ namespace Hotfix.SLWH
 				});
 			});
 
+			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
+			OnMyDataChanged(null, null);
+
 			App.ins.network.RegisterMsgHandler((int)GameMultiRspID.msg_send_color, (cmd, json) => {
 				var msg = JsonMapper.ToObject<msg_send_color>(json);
 				OnSendColor(msg);
 			}, this);
 
-			//百人类游戏直接进游戏房间
-			var handle1 = App.ins.network.EnterGameRoom(1, 0);
-			yield return handle1;
-			if ((int)handle1.Current == 0) {
-				ViewToast.Create(LangNetWork.EnterRoomFailed);
-			}
-
-			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
-			OnMyDataChanged(null, null);
+			App.ins.network.LogMsg((int)GameMultiRspID.msg_random_result_slwh);
+			App.ins.network.LogMsg((int)GameMultiRspID.msg_send_color);
+			yield return 0;
 		}
 
 		IEnumerator ContinueBet()
@@ -649,7 +679,6 @@ namespace Hotfix.SLWH
 			base.Close();
 		}
 
-
 		IEnumerator DoSetColor(List<int> lst)
 		{
 			if (!App.ins.currentApp.game.isEntering) {
@@ -690,16 +719,25 @@ namespace Hotfix.SLWH
 
 			MyDebug.LogFormat("Send Color:{0},  rates:{1}", msg.colors_, msg.rates_);
 		}
-
+		bool alertPlayed_ = false;
 		IEnumerator CountDown_(float t, Text txtCounter)
 		{
 			float tLeft = t;
+			alertPlayed_ = false;
 			while (tLeft > 0) {
 				tLeft -= 1.0f;
 				yield return new WaitForSeconds(0.95f);
 				if (tLeft < 0.0f) tLeft = 0.0f;
 				txtCounter.text = tLeft.ToString();
+				if (tLeft < 5 && st == GameControllerBase.GameState.state_wait_start) {
+					if (!alertPlayed_) {
+						App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/vs_alert.wav");
+						alertPlayed_ = true;
+					}
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/TimerTick.mp3");
+				}
 			}
+			lastCounter_ = -1;
 			yield return 0;
 		}
 
@@ -715,10 +753,10 @@ namespace Hotfix.SLWH
 
 			OnBetClick(true);
 		}
-
+		int lastCounter_ = -1;
 		public override void OnStateChange(msg_state_change msg)
 		{
-			GameControllerBase.GameState st = (GameControllerBase.GameState)int.Parse(msg.change_to_);
+			GameControllerBase.GameState newSt = (GameControllerBase.GameState)int.Parse(msg.change_to_);
 			var txtCounter = canvas.FindChildDeeply("TimeCounter").FindChildDeeply("TimeText").GetComponent<Text>();
 			var gameState_1 = canvas.FindChildDeeply("gameState_1");
 			var gameState_2 = canvas.FindChildDeeply("gameState_2");
@@ -728,32 +766,43 @@ namespace Hotfix.SLWH
 			gameState_2.SetActive(false);
 			gameState_3.SetActive(false);
 
-			if (st == GameControllerBase.GameState.state_wait_start) {
+			if (newSt == GameControllerBase.GameState.state_wait_start) {
 				myTotalBet_ = 0;
 				gameState_1.SetActive(true);
 				resultPanel.SetActive(false);
-
+				App.ins.audio.PlayMusicOneShot("Assets/Res/Games/SLWH/Dance/Sound/BGMusic.mp3");
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/start_bet.mp3");
 				this.StartCor(ShowBetState_(int.Parse(msg.time_left) > 3), false);
 			}
-			else if (st == GameControllerBase.GameState.state_do_random) {
+			else if (newSt == GameControllerBase.GameState.state_do_random) {
 				gameState_2.SetActive(true);
 				resultPanel.SetActive(false);
 				OnBetClick(false);
+				if(newSt != st) {
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/stop_bet.wav");
+				}
 			}
-			else if (st == GameControllerBase.GameState.state_rest_end) {
+			else if (newSt == GameControllerBase.GameState.state_rest_end) {
 				gameState_3.SetActive(true);
 			}
 
 			if (int.Parse(msg.time_total_) > 0)
 				stateTimePercent = int.Parse(msg.time_left) * 1.0f / int.Parse(msg.time_total_);
 
-			this.StartCor(CountDown_(int.Parse(msg.time_left), txtCounter), false);
+			if (lastCounter_ >= 0) Globals.cor.StopCor(lastCounter_);
+			lastCounter_ = this.StartCor(CountDown_(int.Parse(msg.time_left), txtCounter), false);
+			st = newSt;
 		}
 
+		float lastChipSound_ = 0.0f;
 		public override void OnPlayerSetBet(msg_player_setbet msg)
 		{
 			var bi = betItems_[int.Parse(msg.present_id_)];
 			bi.SetTotalBet(long.Parse(msg.max_setted_));
+			if (Time.time - lastChipSound_ > 0.2) {
+				lastChipSound_ = Time.time;
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/betSound.mp3");
+			}
 		}
 
 		public override void OnMyBet(msg_my_setbet msg)
@@ -762,6 +811,10 @@ namespace Hotfix.SLWH
 			bi.SetMybet(long.Parse(msg.my_total_set_));
 			bi.SetTotalBet(long.Parse(msg.total_set_));
 			myTotalBet_ += long.Parse(msg.set_);
+			if (Time.time - lastChipSound_ > 0.2) {
+				lastChipSound_ = Time.time;
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/betSound.mp3");
+			}
 		}
 
 		public override GamePlayer OnPlayerEnter(msg_player_seat msg)
@@ -791,10 +844,11 @@ namespace Hotfix.SLWH
 			return bi;
 		}
 
+		float rotTime_ = 10.0f;
 		IEnumerator DoRandomBigSmall(int newI, float stateTimePercent)
 		{
 			bigSmallViewport.RemoveAllChildren();
-			int count = 30;
+			int count = 3 * (int)rotTime_;
 			for(int i = lastBigSmall; i < lastBigSmall + 30; i++) {
 				int itm = i % 3;
 				bigSmallViewport.AddChild(CreateBigSmallItem(itm));
@@ -808,18 +862,29 @@ namespace Hotfix.SLWH
 			}
 			bigSmallViewport.AddChild(CreateBigSmallItem(lastBigSmall));
 			var recTrans = bigSmallViewport.GetComponent<RectTransform>();
-			var doMove = recTrans.DOLocalMoveY(count * 120, 9.0f * stateTimePercent);
+			var doMove = recTrans.DOLocalMoveY(count * 120, (rotTime_ - 1.0f) * stateTimePercent);
 			doMove.SetEase(Ease.InOutQuint);
-			yield return new WaitForSeconds(9.0f * stateTimePercent);
+			yield return new WaitForSeconds((rotTime_ - 1.0f) * stateTimePercent);
 			recTrans.DOLocalMoveY(0, 0);
 			yield return new WaitForSeconds(0.0f);
 
 			bigSmallViewport.RemoveAllChildren();
 			bigSmallViewport.AddChild(CreateBigSmallItem(lastBigSmall));
+			if(newI == 0) {
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/enjoygame_zhuang.wav");
+			}
+			else if(newI == 2){
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/enjoygame_xian.wav");
+			}
+			else if (newI == 2) {
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/enjoygame_he.wav");
+			}
 		}
+
 
 		IEnumerator DoRandomResult_(msg_random_result_base msg)
 		{
+			yield return new WaitForSeconds(1.0f);
 			var pmsg = (msg_random_result_slwh)msg;
 
 			//主中奖类型
@@ -831,17 +896,43 @@ namespace Hotfix.SLWH
 			int color = int.Parse(pmsg.color_);
 			
 			int turn = int.Parse(pmsg.turn_);
-
+			rotTime_ = 10.0f;
 			//中奖动物列表
 			animalIDs = Globals.Split(pmsg.animals_, ",");
-			var tweenAnimal = animalRot.transform.DOLocalRotate(new Vector3(0, -720 * 10, 0), 9.0f * stateTimePercent, RotateMode.LocalAxisAdd);
+			if (animalIDs.Count > 1) {
+				rotTime_ = 4.0f;
+			}
+			//外圈开始转
+			var tweenAnimal = animalRot.transform.DOLocalRotate(new Vector3(0, -720 * rotTime_, 0), (rotTime_ - 1) * stateTimePercent, RotateMode.LocalAxisAdd);
 			tweenAnimal.SetEase(Ease.InOutQuint);
-
+			//庄闲和开始转
 			this.StartCor(DoRandomBigSmall(pidBigsmall, stateTimePercent),false);
 
 			List<int> lstAnimals = new List<int>();
 			List<int> lstColors = new List<int>();
 
+			if (pidMain >= eAwardsType.DaSanYuanLion && pidMain <= eAwardsType.DaSanYuanRabbit) {
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/mode3.mp3");
+				App.ins.audio.PlayMusicOneShot("Assets/Res/Games/SLWH/Dance/Sound/dasanyuan.wav");
+			}
+			else if (pidMain >= eAwardsType.DaSiXiRed && pidMain <= eAwardsType.DaSiXiGreen) {
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/mode4.mp3");
+				App.ins.audio.PlayMusicOneShot("Assets/Res/Games/SLWH/Dance/Sound/dasixi.wav");
+			}
+			else {
+				if (pidMain == eAwardsType.Lightingx2 || pidMain == eAwardsType.Lightingx3) {
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/lighting.mp3");
+				}
+				else if (pidMain == eAwardsType.SongDeng) {
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/freegame.mp3");
+				}
+				else if (pidMain == eAwardsType.CaiJing) {
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/SLWH/Dance/Sound/CN/cashpool.mp3");
+				}
+				App.ins.audio.PlayMusicOneShot("Assets/Res/Games/SLWH/Dance/Sound/betStateMusic.mp3");
+			}
+
+			//指针开始转,跳上舞台
 			for (int i = 0; i < animalIDs.Count; i++) {
 				int animal = animalIDs[i];
 				int rotUnit = 24 - lastPointerPos;
@@ -849,36 +940,44 @@ namespace Hotfix.SLWH
 				rotUnit += 24 * 10;
 				rotUnit = (int)(rotUnit * 360 / 24.0f);
 
-				float rotTime = 10.0f;
-				if (animalIDs.Count > 1) {
-					rotTime = 4.0f;
-				}
-				rotTime *= stateTimePercent;
-				var tween = arrowRot.transform.DOLocalRotate(new Vector3(0, rotUnit, 0), rotTime, RotateMode.LocalAxisAdd);
+				rotTime_ *= stateTimePercent;
+				var tween = arrowRot.transform.DOLocalRotate(new Vector3(0, rotUnit, 0), rotTime_, RotateMode.LocalAxisAdd);
 				tween.SetEase(Ease.InOutQuint);
 
-				yield return new WaitForSeconds(rotTime);
+				yield return new WaitForSeconds(rotTime_);
 
 				lastPointerPos = animal;
 
-				if(i == 0) huaBan.StartAnim("Open");
-
+				if (i == 0) {
+					huaBan.StartAnim("Open");
+					if(animalIDs.Count > 1) {
+						centerStage.transform.DOScale(new Vector3(3, 1, 3), 1.0f);
+					}
+				}
+				animals_[animal].color = (eAniColor)lstColor[animal];
 				jewels_[animal].Blink();
 				yield return new WaitForSeconds(1.0f * stateTimePercent);
-				this.StartCor(animals_[animal].JumpToStage(), false);
+				yield return animals_[animal].JumpToStage(stagePos_[i].transform.position);
+			}
 
-				if (i != animalIDs.Count - 1) {
-					yield return new WaitForSeconds(3.0f * stateTimePercent);
-				}
-				else {
-					yield return new WaitForSeconds(6.0f * stateTimePercent);
-				}
-				this.StartCor(animals_[animal].JumpBack(), false);
+			App.ins.audio.PlayMusicOneShot("Assets/Res/Games/SLWH/Dance/Sound/lottery_for.wav");
+			//一起跳舞
+			for (int i = 0; i < animalIDs.Count; i++) {
+				int animal = animalIDs[i];
+				animals_[animal].PlayDance();
+			}
+
+			yield return new WaitForSeconds(3.0f * stateTimePercent);
+
+			//一起跳回去
+			for (int i = 0; i < animalIDs.Count; i++) {
+				int animal = animalIDs[i];
+				this.StartCor(animals_[animal].JumpBack(jumpTarget.transform.position), false);
 				lstAnimals.Add((int)animals_[animal].animal);
 				lstColors.Add(lstColor[animal]);
 			}
 
-			if(turn > lastTurn_) {
+			if (turn > lastTurn_) {
 				var rec = CreateGameRecordItem_(pidMain, pidSub, lstColors, lstAnimals);
 				recordViewport.AddChild(rec);
 				var app = (MyApp)App.ins.currentApp;
@@ -887,6 +986,8 @@ namespace Hotfix.SLWH
 					GameObject.Destroy(t.gameObject);
 				}
 			}
+
+			centerStage.transform.DOScale(new Vector3(1, 1, 1), 1.0f);
 			yield return new WaitForSeconds(1.0f * stateTimePercent);
 			huaBan.StartAnim("Close");
 		}
@@ -909,7 +1010,9 @@ namespace Hotfix.SLWH
 
 			if (pid >= eAwardsType.DaSanYuanLion && pid <= eAwardsType.DaSanYuanRabbit) {
 				var SanYuanRoot = obj.FindChildDeeply("SanYuanRoot");
-				for(int i = 1; i <= 3; i++) {
+				SanYuanRoot.SetActive(true);
+				img.gameObject.SetActive(false);
+				for (int i = 1; i <= 3; i++) {
 					var obj1 = SanYuanRoot.FindChildDeeply("item_" + i).GetComponent<Image>();
 					SetColorImage_(obj1, (eAniColor)i - 1);
 					var obj2 = SanYuanRoot.FindChildDeeply("animal_" + i).GetComponent<Image>();
@@ -917,7 +1020,9 @@ namespace Hotfix.SLWH
 				}
 			}
 			else if(pid >= eAwardsType.DaSiXiRed && pid <= eAwardsType.DaSiXiGreen) {
+				img.gameObject.SetActive(false);
 				var SiXiRoot = obj.FindChildDeeply("SiXiRoot");
+				SiXiRoot.SetActive(true);
 				for (int i = 1; i <= 4; i++) {
 					var obj1 = SiXiRoot.FindChildDeeply("item_" + i).GetComponent<Image>();
 					SetColorImage_(obj1, (eAniColor)color[0]);
@@ -1255,7 +1360,8 @@ namespace Hotfix.SLWH
 
 		public override void OnJackpotNumber(msg_get_public_data_ret msg)
 		{
-			throw new NotImplementedException();
+			var caiJinText = canvas.FindChildDeeply("CaiJin/caiJinText").GetComponent<TextMeshProUGUI>();
+			caiJinText.text = long.Parse(msg.ret).ShowAsGold();
 		}
 
 		long myTotalBet_
@@ -1271,7 +1377,7 @@ namespace Hotfix.SLWH
 		}
 
 		public AddressablesLoader.LoadTask<Material>  matRed, matGreen, matYellow;
-		public GameObject BetStageRoot, animalRot, arrowRot, jumpTarget, canvas, resultPanel, huaBan, bigSmallViewport, recordViewport;
+		public GameObject BetStageRoot, animalRot, arrowRot, jumpTarget, canvas, resultPanel, huaBan, bigSmallViewport, recordViewport, centerStage;
 		public int betSelected = 1, turn_, lastBetTurn_ = -1;
 		public List<msg_set_bets_req> lastBets = new List<msg_set_bets_req>();
 		List<Jewel> jewels_ = new List<Jewel>();
@@ -1288,7 +1394,8 @@ namespace Hotfix.SLWH
 			cachedImgLion_, cachedImgPanda_, cachedImgMonkey_, cachedImgRabbit_,
 			cachedImgBig_, cachedImgDraw_, cachedImgSmall_, cachedImgBigRec_, cachedImgDrawRec_, cachedImgSmallRec_;
 
-		List<int> lstColor, lstRates, animalIDs;
+		List<int> lstColor, lstRates, animalIDs = new List<int>();
+		List<GameObject> stagePos_ = new List<GameObject>();
 		eAwardsType pidMain, pidSub;
 
 		List<Animal> animalResult_ = new List<Animal>();
