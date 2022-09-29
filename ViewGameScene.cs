@@ -183,7 +183,7 @@ namespace Hotfix.SLWH
 		eAniColor color_;
 	}
 
-	public class Animal : ControllerDefault
+	public class Animal : ControllerBase
 	{
 		enum State
 		{
@@ -308,6 +308,11 @@ namespace Hotfix.SLWH
 			else if (animal == eAnimal.Monkey) {
 				obj_.StartAnim("Walk_Monkey");
 			}
+		}
+
+		public override string GetDebugInfo()
+		{
+			return "Animal";
 		}
 
 		GameObject obj_;
@@ -486,6 +491,13 @@ namespace Hotfix.SLWH
 				msg_get_public_data msg = new msg_get_public_data();
 				msg.data_ = "cashpool4";
 				App.ins.network.SendMessage((int)GameReqID.msg_get_public_data, msg);
+			}
+		}
+		
+		protected override void OnAboutToStop()
+		{
+			foreach(var it in animals_) {
+				it.AboutToStop();
 			}
 		}
 
@@ -877,7 +889,9 @@ namespace Hotfix.SLWH
 
 		IEnumerator DoRandomResult_(msg_random_result_base msg)
 		{
-			yield return new WaitForSeconds(1.0f);
+			//这个时间快照起来.
+			float stateTimePercentSnapshot = stateTimePercent;
+			yield return new WaitForSeconds(1.0f * stateTimePercentSnapshot);
 			var pmsg = (msg_random_result_slwh)msg;
 
 			//主中奖类型
@@ -896,10 +910,10 @@ namespace Hotfix.SLWH
 				rotTime_ = 4.0f;
 			}
 			//外圈开始转
-			var tweenAnimal = animalRot.transform.DOLocalRotate(new Vector3(0, -720 * rotTime_, 0), (rotTime_ - 1) * stateTimePercent, RotateMode.LocalAxisAdd);
+			var tweenAnimal = animalRot.transform.DOLocalRotate(new Vector3(0, -720 * rotTime_, 0), (rotTime_ - 1) * stateTimePercentSnapshot, RotateMode.LocalAxisAdd);
 			tweenAnimal.SetEase(Ease.InOutQuint);
 			//庄闲和开始转
-			this.StartCor(DoRandomBigSmall(pidBigsmall, stateTimePercent),false);
+			this.StartCor(DoRandomBigSmall(pidBigsmall, stateTimePercentSnapshot),false);
 
 			List<int> lstAnimals = new List<int>();
 			List<int> lstColors = new List<int>();
@@ -933,7 +947,7 @@ namespace Hotfix.SLWH
 				rotUnit += 24 * 10;
 				rotUnit = (int)(rotUnit * 360 / 24.0f);
 
-				rotTime_ *= stateTimePercent;
+				rotTime_ *= stateTimePercentSnapshot;
 				var tween = arrowRot.transform.DOLocalRotate(new Vector3(0, rotUnit, 0), rotTime_, RotateMode.LocalAxisAdd);
 				tween.SetEase(Ease.InOutQuint);
 
@@ -949,7 +963,7 @@ namespace Hotfix.SLWH
 				}
 				animals_[animal].color = (eAniColor)lstColor[animal];
 				jewels_[animal].Blink();
-				yield return new WaitForSeconds(1.0f * stateTimePercent);
+				yield return new WaitForSeconds(1.0f * stateTimePercentSnapshot);
 				yield return animals_[animal].JumpToStage(stagePos_[i].transform.position);
 			}
 
@@ -960,7 +974,7 @@ namespace Hotfix.SLWH
 				animals_[animal].PlayDance();
 			}
 
-			yield return new WaitForSeconds(3.0f * stateTimePercent);
+			yield return new WaitForSeconds(3.0f * stateTimePercentSnapshot);
 
 			//一起跳回去
 			for (int i = 0; i < animalIDs.Count; i++) {
@@ -981,7 +995,7 @@ namespace Hotfix.SLWH
 			}
 
 			centerStage.transform.DOScale(new Vector3(1, 1, 1), 1.0f);
-			yield return new WaitForSeconds(1.0f * stateTimePercent);
+			yield return new WaitForSeconds(1.0f * stateTimePercentSnapshot);
 			huaBan.StartAnim("Close");
 		}
 
@@ -1244,6 +1258,7 @@ namespace Hotfix.SLWH
 				}
 				else
 					objColor.ChangeSprite(cachedYellowColor_.Result);
+
 			}
 
 			var spine_stage = resultPanel.FindChildDeeply("spine_stage");

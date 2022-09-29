@@ -9,11 +9,10 @@ namespace Hotfix.SLWH
 {
 	public class GameController : GameControllerMultiplayer
 	{
-		ViewLoading loading;
-		public override void Start()
+		protected override IEnumerator OnStart()
 		{
-			base.Start();
-			this.StartCor(ShowLoading_(), false);
+			yield return base.OnStart();
+			yield return ShowLoading_();
 		}
 
 		public override IEnumerator ShowLogin()
@@ -24,43 +23,9 @@ namespace Hotfix.SLWH
 
 		IEnumerator ShowLoading_()
 		{
-			loading = new ViewLoading();
+			var loading = CreateLoading();
 			OpenView(loading);
 			yield return 0;
-		}
-
-		//调用这个避免内存泄露
-		public override void Stop()
-		{
-			//移除所有正在执行的协程.
-			this.StopCor(-1);
-			base.Stop();
-		}
-
-		IEnumerator DoLoadMainScene()
-		{
-			yield return loading.WaitingForReady();
-			//需要等待loding scene完成,不能同时load2个scene,必须等一个完成
-			ViewGameScene view = new ViewGameScene(loading.loading);
-			OpenView(view);
-			mainView = view;
-			yield return view.WaitingForReady();
-			yield return 0;
-		}
-
-		protected override IEnumerator OnGameLoginSucc()
-		{
-			//百人类游戏直接进游戏房间
-			var handle1 = App.ins.network.CoEnterGameRoom(1, 0);
-			yield return handle1;
-			if ((int)handle1.Current == 0) {
-				ViewToast.Create(LangNetWork.EnterRoomFailed);
-			}
-		}
-
-		protected override IEnumerator OnPrepareGameRoom()
-		{
-			yield return DoLoadMainScene();
 		}
 
 		public override msg_random_result_base CreateRandomResult(string json)
@@ -71,6 +36,15 @@ namespace Hotfix.SLWH
 		public override msg_last_random_base CreateLastRandom(string json)
 		{
 			return JsonMapper.ToObject<msg_last_random_slwh>(json);
+		}
+		protected override ViewGameSceneBase OnCreateViewGameScene(IShowDownloadProgress loadingProgress)
+		{
+			return new ViewGameScene(loadingProgress);
+		}
+
+		protected override ViewLoadingBase OnCreateLoading(IShowDownloadProgress loadingProgress)
+		{
+			return new ViewLoading();
 		}
 	}
 }

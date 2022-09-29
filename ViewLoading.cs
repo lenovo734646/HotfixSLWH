@@ -35,15 +35,13 @@ namespace Hotfix.SLWH
 		float per_ = 0.0f;
 	}
 
-	public class ViewLoading : ViewBase
+	public class ViewLoading : ViewLoadingBase
 	{
 		public Slider slider;
 		public Text txt;
-		public AShower loading = new AShower();
 
 		public ViewLoading():base(null)
 		{
-			loading.vl_ = this;
 		}
 
 		protected override void SetLoader()
@@ -59,5 +57,11 @@ namespace Hotfix.SLWH
 			yield return 0;
 		}
 
+		protected override IShowDownloadProgress OnCreateProgressShower()
+		{
+			var s = new AShower();
+			s.vl_ = this;
+			return s;
+		}
 	}
 }
