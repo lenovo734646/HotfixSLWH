@@ -18,7 +18,7 @@ namespace Hotfix.SLWH
 		public override IEnumerator ShowLogin()
 		{
 			MyDebug.Log("ShowLogin()");
-			return base.ShowLogin();
+			yield return base.ShowLogin();
 		}
 
 		IEnumerator ShowLoading_()
