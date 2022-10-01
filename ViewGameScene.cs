@@ -1,5 +1,7 @@
 ﻿using AssemblyCommon;
 using DG.Tweening;
+using DG.Tweening.Core;
+using DG.Tweening.Plugins.Options;
 using Hotfix.Common;
 using Hotfix.Common.MultiPlayer;
 using Hotfix.Model;
@@ -9,13 +11,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Hotfix.SLWH
 {
-    public enum eAnimal
+	public enum eAnimal
 	{
 		Loin = 0,
 		Panda = 1,
@@ -265,7 +269,7 @@ namespace Hotfix.SLWH
 
 		public void PlayJump()
 		{
-			Globals.cor.StopCor(idleRotID_);
+			this.StopCor(idleRotID_);
 			obj_.StartAnim("Jump");
 		}
 
@@ -280,18 +284,18 @@ namespace Hotfix.SLWH
 
 		public void PlayIdle()
 		{
-			idleRotID_ = Globals.cor.StartCor(DoIdle(), false);
+			idleRotID_ = this.StartCor(DoIdle(), false);
 		}
 
 		public void PlayDance()
 		{
-			Globals.cor.StopCor(idleRotID_);
+			this.StopCor(idleRotID_);
 			obj_.StartAnim("Victory");
 		}
 
 		public void RoundBody()
 		{
-			Globals.cor.StopCor(idleRotID_);
+			this.StopCor(idleRotID_);
 			if (animal == eAnimal.Loin) {
 				obj_.StartAnim("walk_Lion");
 			}
@@ -622,7 +626,6 @@ namespace Hotfix.SLWH
 				OnSendColor(msg);
 			}, this);
 
-			
 			yield return 0;
 		}
 
@@ -1326,26 +1329,6 @@ namespace Hotfix.SLWH
 				var ratio3 = winAnimal.FindChildDeeply("ratioText").GetComponent<TextMeshProUGUI>();
 				ratio3.text = "X" + ratio;
 			}
-		}
-
-		public override void OnGoldChange(msg_deposit_change2 msg)
-		{
-			int pos = App.ins.game.serverPos;
-			if (int.Parse(msg.pos_) == pos) {
-				if(int.Parse(msg.display_type_) == (int)msg_deposit_change2.dp.display_type_sync_gold) {
-					App.ins.self.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-					App.ins.self.DispatchDataChanged();
-				}
-			}
-		}
-
-		public override void OnGoldChange(msg_currency_change msg)
-		{
-			if(msg.why_ == "0") {
-				App.ins.self.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-				App.ins.self.DispatchDataChanged();
-			}
-
 		}
 
 		public override void OnCommonReply(msg_common_reply msg)
