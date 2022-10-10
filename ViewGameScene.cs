@@ -496,25 +496,33 @@ namespace Hotfix.SLWH
 		
 		protected override void OnAboutToStop()
 		{
-			foreach(var it in animals_) {
-				it.AboutToStop();
+			foreach (var it in animals_) {
+				it.Stop();
 			}
+
+			foreach (var it in animalResult_) {
+				it.Stop();
+			}
+
+			App.ins.self.onDataChanged -= OnMyDataChanged;
 		}
 
 		protected override IEnumerator OnResourceReady()
 		{
-			canvas = GameObject.Find("Canvas");
-
+			var view = FindChild("View");
+			canvas = FindChild("Canvas");
+	
 			resultPanel = canvas.FindChildDeeply("ResultPanel");
-			BetStageRoot = GameObject.Find("BetStageRoot");
-			animalRot = GameObject.Find("Animal_Rotate_Root");
-			arrowRot = GameObject.Find("Arrow_Rotate_Root");
-			huaBan = GameObject.Find("HuaBan");
-			jumpTarget = GameObject.Find("JumpTarget");
-			centerStage = GameObject.Find("Center/dizuo");
+			BetStageRoot = view.FindChildDeeply("BetStageRoot");
+
+			animalRot = view.FindChildDeeply("Animal_Rotate_Root");
+			arrowRot = view.FindChildDeeply("Arrow_Rotate_Root");
+			huaBan = view.FindChildDeeply("HuaBan");
+			jumpTarget = view.FindChildDeeply("JumpTarget");
+			centerStage = view.FindChildDeeply("Center/dizuo");
 
 			for(int i = 1; i <= 5; i++) {
-				stagePos_.Add(GameObject.Find($"animal/{i}"));
+				stagePos_.Add(view.FindChildDeeply($"animal/{i}"));
 			}
 
 			bigSmallViewport = canvas.FindChildDeeply("EnjoyGameScrollView").FindChildDeeply("Viewport");
@@ -613,9 +621,7 @@ namespace Hotfix.SLWH
 			var btn_set = Toggle_Menu.gameObject.FindChildDeeply("btn_Set");
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
-				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					App.ins.StartCor(App.ins.CoCheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
-				});
+				App.ins.RunGame();
 			});
 
 			App.ins.self.onDataChanged += OnMyDataChanged;
@@ -668,20 +674,11 @@ namespace Hotfix.SLWH
 
 		protected override void OnStop()
 		{
-			foreach (var it in animals_) {
-				it.Stop();
-			}
-
-			foreach (var it in animalResult_) {
-				it.Stop();
-			}
-
 			animalResult_.Clear();
 			jewels_.Clear();
 			betItems_.Clear();
 			animals_.Clear();
-			App.ins.self.onDataChanged -= OnMyDataChanged;
-			base.Close();
+			base.OnStop();
 		}
 
 		IEnumerator DoSetColor(List<int> lst)
@@ -710,6 +707,7 @@ namespace Hotfix.SLWH
 
 		private void OnSendColor(msg_send_color msg)
 		{
+			MyDebug.LogFormat("OnSendColor this:{0}", GetHashCode());
 			lstColor = Globals.Split(msg.colors_, ",");
 			this.StartCor(DoSetColor(lstColor), true);
 

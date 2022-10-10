@@ -11,7 +11,6 @@ using UnityEngine.UI;
 
 namespace Hotfix.SLWH
 {
-
 	public class AShower : IShowDownloadProgress
 	{
 		public ViewLoading vl_;
@@ -54,6 +53,8 @@ namespace Hotfix.SLWH
 			var canvas = GameObject.Find("Canvas");
 			slider = canvas.FindChildDeeply("Slider").GetComponent<Slider>();
 			txt = canvas.FindChildDeeply("Text").GetComponent<Text>();
+
+			loading.SetUIRoot(txt.gameObject);
 			yield return 0;
 		}
 
